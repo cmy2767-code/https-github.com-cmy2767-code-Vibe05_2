@@ -6,13 +6,14 @@ import { createPost, updatePost, type Post } from "@/lib/posts"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { LoaderCircle } from "lucide-react"
 
 interface PostFormProps {
   mode: "create" | "edit"
   post?: Post
 }
 
-function Label_({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
+function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
   return (
     <label htmlFor={htmlFor} className="text-sm font-medium text-foreground">
       {children}
@@ -26,6 +27,7 @@ export function PostForm({ mode, post }: PostFormProps) {
   const [author, setAuthor] = useState(post?.author ?? "")
   const [content, setContent] = useState(post?.content ?? "")
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [submitting, setSubmitting] = useState(false)
 
   function validate() {
     const e: Record<string, string> = {}
@@ -36,16 +38,21 @@ export function PostForm({ mode, post }: PostFormProps) {
     return Object.keys(e).length === 0
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate()) return
 
-    if (mode === "create") {
-      createPost({ title: title.trim(), author: author.trim(), content: content.trim() })
-      router.push("/")
-    } else if (post) {
-      updatePost(post.id, { title: title.trim(), author: author.trim(), content: content.trim() })
-      router.push(`/posts/${post.id}`)
+    setSubmitting(true)
+    try {
+      if (mode === "create") {
+        await createPost({ title: title.trim(), author: author.trim(), content: content.trim() })
+        router.push("/")
+      } else if (post) {
+        await updatePost(post.id, { title: title.trim(), author: author.trim(), content: content.trim() })
+        router.push(`/posts/${post.id}`)
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -53,29 +60,31 @@ export function PostForm({ mode, post }: PostFormProps) {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2 space-y-1.5">
-          <Label_ htmlFor="title">제목</Label_>
+          <FieldLabel htmlFor="title">제목</FieldLabel>
           <Input
             id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="제목을 입력하세요"
+            disabled={submitting}
           />
           {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
         </div>
         <div className="space-y-1.5">
-          <Label_ htmlFor="author">작성자</Label_>
+          <FieldLabel htmlFor="author">작성자</FieldLabel>
           <Input
             id="author"
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
             placeholder="이름을 입력하세요"
+            disabled={submitting}
           />
           {errors.author && <p className="text-xs text-destructive">{errors.author}</p>}
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <Label_ htmlFor="content">내용</Label_>
+        <FieldLabel htmlFor="content">내용</FieldLabel>
         <Textarea
           id="content"
           value={content}
@@ -83,15 +92,17 @@ export function PostForm({ mode, post }: PostFormProps) {
           placeholder="내용을 입력하세요"
           rows={14}
           className="resize-none"
+          disabled={submitting}
         />
         {errors.content && <p className="text-xs text-destructive">{errors.content}</p>}
       </div>
 
       <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={() => router.back()}>
+        <Button type="button" variant="outline" onClick={() => router.back()} disabled={submitting}>
           취소
         </Button>
-        <Button type="submit">
+        <Button type="submit" disabled={submitting}>
+          {submitting && <LoaderCircle className="animate-spin" />}
           {mode === "create" ? "등록" : "저장"}
         </Button>
       </div>

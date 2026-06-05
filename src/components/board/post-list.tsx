@@ -13,22 +13,23 @@ import {
 } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Search } from "lucide-react"
+import { Search, LoaderCircle } from "lucide-react"
 
 export function PostList() {
   const [posts, setPosts] = useState<Post[]>([])
   const [query, setQuery] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setPosts(getPosts())
+    getPosts()
+      .then(setPosts)
+      .catch(() => setError("게시글을 불러오지 못했습니다."))
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = query.trim()
-    ? posts.filter(
-        (p) =>
-          p.title.includes(query) ||
-          p.author.includes(query)
-      )
+    ? posts.filter((p) => p.title.includes(query) || p.author.includes(query))
     : posts
 
   return (
@@ -47,9 +48,7 @@ export function PostList() {
       {/* Stats */}
       <div className="flex items-center gap-2">
         <Badge variant="secondary">전체 {posts.length}개</Badge>
-        {query && (
-          <Badge variant="outline">검색결과 {filtered.length}개</Badge>
-        )}
+        {query && <Badge variant="outline">검색결과 {filtered.length}개</Badge>}
       </div>
 
       {/* Table */}
@@ -65,17 +64,30 @@ export function PostList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-16 text-center text-sm text-muted-foreground">
+                  <LoaderCircle className="mx-auto mb-2 size-5 animate-spin" />
+                  불러오는 중...
+                </TableCell>
+              </TableRow>
+            ) : error ? (
+              <TableRow>
+                <TableCell colSpan={5} className="py-16 text-center text-sm text-destructive">
+                  {error}
+                </TableCell>
+              </TableRow>
+            ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="py-16 text-center text-sm text-muted-foreground">
                   {query ? "검색 결과가 없습니다." : "아직 게시글이 없습니다. 첫 글을 작성해보세요!"}
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((post, i) => (
+              filtered.map((post) => (
                 <TableRow key={post.id} className="hover:bg-muted/40">
                   <TableCell className="text-center text-sm text-muted-foreground">
-                    {posts.length - posts.indexOf(post)}
+                    {posts.indexOf(post) + 1}
                   </TableCell>
                   <TableCell>
                     <Link
@@ -89,7 +101,7 @@ export function PostList() {
                     {post.author}
                   </TableCell>
                   <TableCell className="text-center text-sm text-muted-foreground">
-                    {formatDate(post.createdAt)}
+                    {formatDate(post.created_at)}
                   </TableCell>
                   <TableCell className="text-center text-sm text-muted-foreground">
                     {post.views}
