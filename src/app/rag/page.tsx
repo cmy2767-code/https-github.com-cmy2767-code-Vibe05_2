@@ -12,7 +12,9 @@ import {
   Loader2,
   Bot,
   User,
+  LogOut,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface Document {
   filename: string;
@@ -25,6 +27,7 @@ interface Message {
 }
 
 export default function RagPage() {
+  const router = useRouter();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -141,7 +144,17 @@ export default function RagPage() {
       {/* 헤더 */}
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-indigo-600 text-white">
         <Bot size={20} />
-        <h1 className="font-semibold text-base">문서 AI 챗봇</h1>
+        <h1 className="font-semibold text-base flex-1">문서 AI 챗봇</h1>
+        <button
+          onClick={async () => {
+            await fetch("/api/auth/logout", { method: "POST" });
+            router.push("/login");
+          }}
+          className="flex items-center gap-1 text-indigo-200 hover:text-white text-xs"
+        >
+          <LogOut size={14} />
+          로그아웃
+        </button>
       </div>
 
       {/* 문서 섹션 */}
