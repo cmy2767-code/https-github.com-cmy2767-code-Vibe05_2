@@ -43,6 +43,7 @@ export default function RagPage() {
   const [question, setQuestion] = useState("");
   const [thinking, setThinking] = useState(false);
   const [showNotice, setShowNotice] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +54,7 @@ export default function RagPage() {
 
   useEffect(() => {
     fetchDocuments();
-    // 세션당 한 번만 안내 팝업 표시
+    fetch("/api/auth/me").then((r) => r.json()).then((d) => setIsAdmin(d.isAdmin));
     if (!sessionStorage.getItem("notice_seen")) {
       setShowNotice(true);
     }
@@ -322,29 +323,33 @@ export default function RagPage() {
             )}
           </button>
 
-          {/* 오른쪽: 문서 추가 버튼 */}
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-8 text-xs"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? (
-              <Loader2 size={14} className="animate-spin mr-1" />
-            ) : (
-              <Upload size={14} className="mr-1" />
-            )}
-            {uploading ? uploadProgress : "문서 추가"}
-          </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.docx,.xlsx,.xls,.txt"
-            className="hidden"
-            multiple
-            onChange={handleUpload}
-          />
+          {/* 오른쪽: 문서 추가 버튼 (관리자만) */}
+          {isAdmin && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+              >
+                {uploading ? (
+                  <Loader2 size={14} className="animate-spin mr-1" />
+                ) : (
+                  <Upload size={14} className="mr-1" />
+                )}
+                {uploading ? uploadProgress : "문서 추가"}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.xlsx,.xls,.txt"
+                className="hidden"
+                multiple
+                onChange={handleUpload}
+              />
+            </>
+          )}
         </div>
 
         {uploadError && (
@@ -367,12 +372,14 @@ export default function RagPage() {
                 <span className="text-xs text-indigo-700 max-w-[140px] truncate">
                   {doc.filename}
                 </span>
-                <button
-                  onClick={() => handleDelete(doc.filename)}
-                  className="text-gray-400 hover:text-red-500 ml-0.5"
-                >
-                  <Trash2 size={12} />
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => handleDelete(doc.filename)}
+                    className="text-gray-400 hover:text-red-500 ml-0.5"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
               </div>
             ))}
           </div>

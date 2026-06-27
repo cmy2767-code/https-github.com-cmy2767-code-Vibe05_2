@@ -7,7 +7,16 @@ import { getEmbeddings } from "@/lib/embeddings";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+function isAdmin(req: NextRequest) {
+  const cookie = req.cookies.get("admin_auth")?.value;
+  return !!process.env.ADMIN_PASSWORD && cookie === btoa(process.env.ADMIN_PASSWORD);
+}
+
 export async function POST(req: NextRequest) {
+  if (!isAdmin(req)) {
+    return NextResponse.json({ error: "관리자만 업로드할 수 있습니다." }, { status: 403 });
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
