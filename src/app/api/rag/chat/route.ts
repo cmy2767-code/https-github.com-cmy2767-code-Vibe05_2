@@ -30,13 +30,13 @@ export async function POST(req: NextRequest) {
 
   let docs: Array<{ filename: string; content: string }> | null = null;
 
-  // 키워드로 관련 청크 검색
+  // 키워드로 관련 청크 검색 (토큰 한도 고려해 6개 제한)
   if (keywords.length > 0) {
     const { data: searchResults } = await supabase
       .from("rag_documents")
       .select("filename, content")
       .or(keywords.map((k: string) => `content.ilike.%${k}%`).join(","))
-      .limit(20);
+      .limit(6);
 
     if (searchResults && searchResults.length > 0) {
       docs = searchResults;
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       .from("rag_documents")
       .select("filename, content")
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(6);
 
     if (dbError) {
       return new Response(`[DB오류] ${dbError.message}`, { status: 500 });
