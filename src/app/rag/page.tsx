@@ -18,6 +18,7 @@ import {
   X,
   ShieldCheck,
   BookOpen,
+  Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -246,6 +247,31 @@ export default function RagPage() {
                   <div style={{ fontSize: '13px', color: '#374151', lineHeight: '1.7' }}>
                     <strong style={{ color: '#15803D' }}>✓ AI 처리</strong>는 Groq(미국 서버)를 통해 이루어지며,
                     API 사용 데이터는 AI 학습에 활용되지 않습니다.
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. 무료 사용 범위 및 제한 */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <Zap size={15} color="#D97706" />
+                  <span style={{ fontWeight: 700, fontSize: '14px', color: '#1F2937' }}>무료 사용 범위 및 제한</span>
+                </div>
+                <div style={{ background: '#FFFBEB', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ fontSize: '13px', color: '#374151', lineHeight: '1.7' }}>
+                    <strong style={{ color: '#92400E' }}>AI 답변 (Groq 무료)</strong><br />
+                    하루 최대 약 <strong>400회</strong> 질문 가능, 분당 30회 제한.<br />
+                    여러 명이 동시에 사용하면 느려지거나 잠시 차단될 수 있어요.
+                  </div>
+                  <div style={{ borderTop: '1px solid #FDE68A', margin: '2px 0' }} />
+                  <div style={{ fontSize: '13px', color: '#374151', lineHeight: '1.7' }}>
+                    <strong style={{ color: '#92400E' }}>문서 저장 (Supabase 무료)</strong><br />
+                    최대 <strong>500MB</strong>까지 저장 가능.<br />
+                    텍스트만 저장하므로 수백 개 문서도 거뜬해요.
+                  </div>
+                  <div style={{ borderTop: '1px solid #FDE68A', margin: '2px 0' }} />
+                  <div style={{ fontSize: '13px', color: '#92400E', lineHeight: '1.7', fontStyle: 'italic' }}>
+                    ※ 사용량이 많아지면 유료 플랜 전환이 필요할 수 있습니다.
                   </div>
                 </div>
               </div>
