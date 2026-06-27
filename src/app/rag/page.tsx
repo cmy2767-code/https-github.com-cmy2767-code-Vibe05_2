@@ -95,6 +95,8 @@ export default function RagPage() {
       const data = await res.json();
       if (!res.ok) {
         errors.push(`${file.name}: ${data.error ?? "업로드 실패"}`);
+      } else if (data.semantic === false) {
+        errors.push(`⚠️ ${file.name}: 업로드 완료, 단 의미 검색(임베딩) 미적용 — HF_API_KEY를 확인하세요`);
       }
     }
 
