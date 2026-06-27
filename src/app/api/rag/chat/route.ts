@@ -119,26 +119,34 @@ ${context}`;
     { role: "user", content: question },
   ];
 
-  const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages,
-      temperature: 0.1,
-      stream: true,
-    }),
-  });
+  // 한도 초과 시 소형 모델로 자동 전환
+  const models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"];
+  let groqRes: Response | null = null;
 
-  if (!groqRes.ok) {
-    const data = await groqRes.json();
-    return new Response(
-      `[AI오류] ${data.error?.message ?? JSON.stringify(data)}`,
-      { status: 500 }
-    );
+  for (const model of models) {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({ model, messages, temperature: 0.1, stream: true }),
+    });
+
+    if (res.ok) {
+      groqRes = res;
+      break;
+    }
+
+    // 429(한도초과)면 다음 모델 시도, 그 외 오류는 즉시 반환
+    if (res.status !== 429) {
+      const data = await res.json();
+      return new Response(`[AI오류] ${data.error?.message ?? JSON.stringify(data)}`, { status: 500 });
+    }
+  }
+
+  if (!groqRes) {
+    return new Response("[AI오류] 현재 모든 모델의 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.", { status: 429 });
   }
 
   const encoder = new TextEncoder();
