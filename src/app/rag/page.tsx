@@ -137,7 +137,7 @@ export default function RagPage() {
   }
 
   return (
-    <div className="flex flex-col bg-white overflow-hidden" style={{ height: '100svh', width: '100vw', maxWidth: '100%' }}>
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden' }}>
       {/* 헤더 */}
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-indigo-600 text-white">
         <Bot size={20} />
