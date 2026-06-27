@@ -11,14 +11,40 @@ export async function POST(req: NextRequest) {
     return new Response("질문을 입력해주세요.", { status: 400 });
   }
 
-  const { data: docs, error: dbError } = await supabase
-    .from("rag_documents")
-    .select("filename, content")
-    .order("created_at", { ascending: false })
-    .limit(8);
+  // Extract keywords from question for relevant chunk search
+  const keywords = question
+    .trim()
+    .split(/\s+/)
+    .filter((w: string) => w.length > 1)
+    .slice(0, 5);
 
-  if (dbError) {
-    return new Response(`[DB오류] ${dbError.message}`, { status: 500 });
+  let docs: Array<{ filename: string; content: string }> | null = null;
+
+  // Search for relevant chunks using keyword matching
+  if (keywords.length > 0) {
+    const { data: searchResults } = await supabase
+      .from("rag_documents")
+      .select("filename, content")
+      .or(keywords.map((k: string) => `content.ilike.%${k}%`).join(","))
+      .limit(6);
+
+    if (searchResults && searchResults.length > 0) {
+      docs = searchResults;
+    }
+  }
+
+  // Fall back to most recent chunks if no keyword matches
+  if (!docs || docs.length === 0) {
+    const { data: recentDocs, error: dbError } = await supabase
+      .from("rag_documents")
+      .select("filename, content")
+      .order("created_at", { ascending: false })
+      .limit(8);
+
+    if (dbError) {
+      return new Response(`[DB오류] ${dbError.message}`, { status: 500 });
+    }
+    docs = recentDocs;
   }
 
   if (!docs || docs.length === 0) {
@@ -49,21 +75,54 @@ ${question}`;
       model: "llama-3.3-70b-versatile",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
+      stream: true,
     }),
   });
 
-  const data = await groqRes.json();
-
   if (!groqRes.ok) {
+    const data = await groqRes.json();
     return new Response(
       `[AI오류] ${data.error?.message ?? JSON.stringify(data)}`,
       { status: 500 }
     );
   }
 
-  const text = data.choices?.[0]?.message?.content ?? "응답을 생성할 수 없습니다.";
+  // Parse SSE stream from Groq and forward text tokens
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      const reader = groqRes.body!.getReader();
+      const decoder = new TextDecoder();
 
-  return new Response(text, {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") continue;
+
+          try {
+            const json = JSON.parse(payload);
+            const text = json.choices?.[0]?.delta?.content;
+            if (text) {
+              controller.enqueue(encoder.encode(text));
+            }
+          } catch {
+            // skip malformed SSE lines
+          }
+        }
+      }
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
 }
