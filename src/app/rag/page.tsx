@@ -98,9 +98,10 @@ export default function RagPage() {
     });
 
     if (!res.ok || !res.body) {
+      const errText = await res.text().catch(() => "");
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "오류가 발생했습니다. 다시 시도해주세요." },
+        { role: "assistant", content: errText || "오류가 발생했습니다. 다시 시도해주세요." },
       ]);
       setThinking(false);
       return;
@@ -136,7 +137,7 @@ export default function RagPage() {
   }
 
   return (
-    <div className="flex flex-col w-full bg-white" style={{ height: '100dvh' }}>
+    <div className="flex flex-col bg-white overflow-hidden" style={{ height: '100svh', width: '100vw', maxWidth: '100%' }}>
       {/* 헤더 */}
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-indigo-600 text-white">
         <Bot size={20} />
