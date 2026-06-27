@@ -107,6 +107,7 @@ export default function RagPage() {
     const q = question.trim();
     if (!q || thinking) return;
 
+    const history = messages.slice(-6); // 최근 6개 메시지 전달
     setMessages((prev) => [...prev, { role: "user", content: q }]);
     setQuestion("");
     setThinking(true);
@@ -114,7 +115,7 @@ export default function RagPage() {
     const res = await fetch("/api/rag/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: q }),
+      body: JSON.stringify({ question: q, history }),
     });
 
     if (!res.ok || !res.body) {

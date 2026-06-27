@@ -5,8 +5,13 @@ import { getEmbedding } from "@/lib/embeddings";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+interface HistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export async function POST(req: NextRequest) {
-  const { question } = await req.json();
+  const { question, history = [] }: { question: string; history: HistoryMessage[] } = await req.json();
 
   if (!question?.trim()) {
     return new Response("질문을 입력해주세요.", { status: 400 });
@@ -73,15 +78,20 @@ export async function POST(req: NextRequest) {
     .map((d) => `[출처: ${d.filename}]\n${d.content}`)
     .join("\n\n---\n\n");
 
-  const prompt = `당신은 업로드된 문서를 기반으로 질문에 답하는 AI 어시스턴트입니다.
+  const systemPrompt = `당신은 업로드된 문서를 기반으로 질문에 답하는 AI 어시스턴트입니다.
 아래 문서 내용을 참고하여 질문에 정확하고 친절하게 한국어로 답변해주세요.
 문서에 없는 내용은 "문서에서 찾을 수 없습니다"라고 말해주세요.
+이전 대화 내용도 참고하여 맥락에 맞게 답변하세요.
 
 [문서 내용]
-${context}
+${context}`;
 
-[질문]
-${question}`;
+  // 시스템 프롬프트 + 이전 대화 + 현재 질문
+  const messages = [
+    { role: "system", content: systemPrompt },
+    ...history.map((m) => ({ role: m.role, content: m.content })),
+    { role: "user", content: question },
+  ];
 
   const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -91,7 +101,7 @@ ${question}`;
     },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
+      messages,
       temperature: 0.3,
       stream: true,
     }),
