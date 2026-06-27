@@ -15,6 +15,9 @@ import {
   LogOut,
   ChevronDown,
   ChevronUp,
+  X,
+  ShieldCheck,
+  BookOpen,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -38,6 +41,7 @@ export default function RagPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [showNotice, setShowNotice] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +52,16 @@ export default function RagPage() {
 
   useEffect(() => {
     fetchDocuments();
+    // 세션당 한 번만 안내 팝업 표시
+    if (!sessionStorage.getItem("notice_seen")) {
+      setShowNotice(true);
+    }
   }, [fetchDocuments]);
+
+  function closeNotice() {
+    setShowNotice(false);
+    sessionStorage.setItem("notice_seen", "1");
+  }
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -161,6 +174,98 @@ export default function RagPage() {
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: 'white' }}>
+
+      {/* 안내 팝업 */}
+      {showNotice && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={closeNotice}
+        >
+          <div
+            style={{
+              background: 'white', borderRadius: '16px',
+              width: '100%', maxWidth: '380px',
+              maxHeight: '80vh', overflowY: 'auto',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 팝업 헤더 */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Bot size={20} color="#4F46E5" />
+                <span style={{ fontWeight: 700, fontSize: '16px', color: '#111827' }}>서비스 안내</span>
+              </div>
+              <button onClick={closeNotice} style={{ color: '#9CA3AF', padding: '4px' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '16px 20px 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+              {/* 1. 업로드 문서 안내 */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <BookOpen size={15} color="#4F46E5" />
+                  <span style={{ fontWeight: 700, fontSize: '14px', color: '#1F2937' }}>업로드된 문서</span>
+                </div>
+                <div style={{ background: '#F5F3FF', borderRadius: '10px', padding: '12px 14px' }}>
+                  <p style={{ fontSize: '13px', color: '#374151', lineHeight: '1.7', margin: 0 }}>
+                    본 서비스에는 <strong>공개된 법령·지침·고시</strong> 등
+                    누구나 열람 가능한 문서만 업로드되어 있습니다.
+                  </p>
+                  <ul style={{ fontSize: '13px', color: '#6B7280', margin: '8px 0 0', paddingLeft: '16px', lineHeight: '1.8' }}>
+                    <li>소프트웨어 진흥법 (법률·시행령·시행규칙)</li>
+                    <li>국가를 당사자로 하는 계약에 관한 법률</li>
+                    <li>조달청 협상에 의한 계약 제도</li>
+                    <li>정부 입찰·계약 계약예규</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* 2. 보안 및 저장 안내 */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <ShieldCheck size={15} color="#4F46E5" />
+                  <span style={{ fontWeight: 700, fontSize: '14px', color: '#1F2937' }}>문의 내용 저장 여부</span>
+                </div>
+                <div style={{ background: '#F0FDF4', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ fontSize: '13px', color: '#374151', lineHeight: '1.7' }}>
+                    <strong style={{ color: '#15803D' }}>✓ 질문·대화 내용</strong>은 서버에 저장되지 않습니다.<br />
+                    AI 답변 생성에만 사용되며, 새로고침하면 사라집니다.
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#374151', lineHeight: '1.7' }}>
+                    <strong style={{ color: '#15803D' }}>✓ 문서 텍스트</strong>는 Supabase(클라우드 DB)에 저장됩니다.
+                    전송 구간은 HTTPS로 암호화되며, 외부에서 직접 접근할 수 없습니다.
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#374151', lineHeight: '1.7' }}>
+                    <strong style={{ color: '#15803D' }}>✓ AI 처리</strong>는 Groq(미국 서버)를 통해 이루어지며,
+                    API 사용 데이터는 AI 학습에 활용되지 않습니다.
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={closeNotice}
+                style={{
+                  width: '100%', padding: '12px',
+                  background: '#4F46E5', color: 'white',
+                  border: 'none', borderRadius: '10px',
+                  fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                확인했습니다
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 헤더 */}
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-indigo-600 text-white">
         <Bot size={20} />
