@@ -45,6 +45,7 @@ AS $$
   SELECT id, filename, content,
          1 - (embedding <=> query_embedding) AS similarity
   FROM rag_documents
+  WHERE embedding IS NOT NULL
   ORDER BY embedding <=> query_embedding
   LIMIT match_count;
 $$;
