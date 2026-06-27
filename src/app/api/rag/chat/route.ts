@@ -39,29 +39,29 @@ ${context}
 [질문]
 ${question}`;
 
-  const geminiRes = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    }
-  );
+  const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+    }),
+  });
 
-  const data = await geminiRes.json();
+  const data = await groqRes.json();
 
-  if (!geminiRes.ok) {
+  if (!groqRes.ok) {
     return new Response(
-      `[Gemini오류] ${data.error?.message ?? JSON.stringify(data)}`,
+      `[AI오류] ${data.error?.message ?? JSON.stringify(data)}`,
       { status: 500 }
     );
   }
 
-  const text =
-    data.candidates?.[0]?.content?.parts?.[0]?.text ??
-    "응답을 생성할 수 없습니다.";
+  const text = data.choices?.[0]?.message?.content ?? "응답을 생성할 수 없습니다.";
 
   return new Response(text, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
