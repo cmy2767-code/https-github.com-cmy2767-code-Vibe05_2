@@ -30,6 +30,9 @@ export async function POST(req: NextRequest) {
 
   if (isAdmin && adminPw) {
     res.cookies.set("admin_auth", btoa(adminPw), cookieOptions);
+  } else {
+    // 일반 사용자로 로그인 시 남아있을 수 있는 관리자 쿠키 제거
+    res.cookies.set("admin_auth", "", { httpOnly: true, maxAge: 0, path: "/" });
   }
 
   return res;
