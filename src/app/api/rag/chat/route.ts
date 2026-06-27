@@ -52,27 +52,42 @@ export async function POST(req: NextRequest) {
     }
     // 긴 단어(구체적인 단어) 우선 정렬
     const keywords = Array.from(termSet).sort((a, b) => b.length - a.length).slice(0, 10);
+    const searchKws = keywords.filter((k) => k.length >= 2);
 
-    // 가장 구체적인 단어부터 단독 검색 → 결과 충분하면 바로 사용
-    for (const keyword of keywords.slice(0, 3)) {
-      if (keyword.length < 2) continue;
-      const { data } = await supabase
-        .from("rag_documents")
-        .select("filename, content")
-        .ilike("content", `%${keyword}%`)
-        .limit(10);
-      if (data && data.length >= 2) {
-        docs = data;
-        break;
+    // 2-1: AND 검색 — 여러 키워드를 동시에 포함하는 청크 (가장 정확)
+    if (searchKws.length >= 2) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let query: any = supabase.from("rag_documents").select("filename, content");
+      for (const kw of searchKws.slice(0, 3)) {
+        query = query.ilike("content", `%${kw}%`);
+      }
+      const { data: andDocs } = await query.limit(10);
+      if (andDocs && andDocs.length >= 1) {
+        docs = andDocs;
       }
     }
 
-    // 단독 검색 결과 부족하면 OR 합산 검색
+    // 2-2: 가장 구체적인 단어 단독 검색
+    if (!docs || docs.length === 0) {
+      for (const keyword of searchKws.slice(0, 3)) {
+        const { data } = await supabase
+          .from("rag_documents")
+          .select("filename, content")
+          .ilike("content", `%${keyword}%`)
+          .limit(10);
+        if (data && data.length >= 2) {
+          docs = data;
+          break;
+        }
+      }
+    }
+
+    // 2-3: OR 합산 검색 (마지막 수단)
     if (!docs || docs.length < 2) {
       const { data: keywordDocs } = await supabase
         .from("rag_documents")
         .select("filename, content")
-        .or(keywords.map((k: string) => `content.ilike.%${k}%`).join(","))
+        .or(searchKws.map((k: string) => `content.ilike.%${k}%`).join(","))
         .limit(10);
       if (keywordDocs && keywordDocs.length > 0) {
         docs = keywordDocs;
