@@ -220,12 +220,9 @@ export default function RagPage() {
                     본 서비스에는 <strong>공개된 법령·지침·고시</strong> 등
                     누구나 열람 가능한 문서만 업로드되어 있습니다.
                   </p>
-                  <ul style={{ fontSize: '13px', color: '#6B7280', margin: '8px 0 0', paddingLeft: '16px', lineHeight: '1.8' }}>
-                    <li>소프트웨어 진흥법 (법률·시행령·시행규칙)</li>
-                    <li>국가를 당사자로 하는 계약에 관한 법률</li>
-                    <li>조달청 협상에 의한 계약 제도</li>
-                    <li>정부 입찰·계약 계약예규</li>
-                  </ul>
+                  <p style={{ fontSize: '13px', color: '#6B7280', margin: '8px 0 0', lineHeight: '1.7' }}>
+                    예시) 소프트웨어 진흥법, 공공소프트웨어사업 과업심의 가이드
+                  </p>
                 </div>
               </div>
 
