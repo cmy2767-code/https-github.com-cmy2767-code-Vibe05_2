@@ -137,7 +137,7 @@ export default function RagPage() {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: 'white' }}>
       {/* 헤더 */}
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-indigo-600 text-white">
         <Bot size={20} />
@@ -205,7 +205,7 @@ export default function RagPage() {
       </div>
 
       {/* 채팅 영역 */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 gap-2">
             <Bot size={40} className="text-indigo-200" />
@@ -247,7 +247,7 @@ export default function RagPage() {
       </div>
 
       {/* 입력 영역 */}
-      <div className="px-4 pt-3 border-t bg-white" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
+      <div style={{ flexShrink: 0, padding: '12px 16px', paddingBottom: 'max(12px, env(safe-area-inset-bottom))', borderTop: '1px solid #e5e7eb', background: 'white' }}>
         <div className="flex gap-2 items-end">
           <Textarea
             value={question}
