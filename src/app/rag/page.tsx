@@ -13,6 +13,8 @@ import {
   Bot,
   User,
   LogOut,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -30,7 +32,9 @@ export default function RagPage() {
   const router = useRouter();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [docOpen, setDocOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [question, setQuestion] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -51,29 +55,42 @@ export default function RagPage() {
   }, [messages]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
 
     setUploading(true);
     setUploadError("");
 
-    const formData = new FormData();
-    formData.append("file", file);
+    const errors: string[] = [];
 
-    const res = await fetch("/api/rag/upload", {
-      method: "POST",
-      body: formData,
-    });
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadProgress(
+        files.length > 1 ? `${i + 1} / ${files.length} 처리 중...` : "처리 중..."
+      );
 
-    const data = await res.json();
-    setUploading(false);
+      const formData = new FormData();
+      formData.append("file", file);
 
-    if (!res.ok) {
-      setUploadError(data.error ?? "업로드 실패");
-    } else {
-      await fetchDocuments();
+      const res = await fetch("/api/rag/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        errors.push(`${file.name}: ${data.error ?? "업로드 실패"}`);
+      }
     }
 
+    setUploading(false);
+    setUploadProgress("");
+
+    if (errors.length > 0) {
+      setUploadError(errors.join("\n"));
+    }
+
+    await fetchDocuments();
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -139,6 +156,8 @@ export default function RagPage() {
     }
   }
 
+  const canCollapse = documents.length >= 2;
+
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: 'white' }}>
       {/* 헤더 */}
@@ -160,9 +179,21 @@ export default function RagPage() {
       {/* 문서 섹션 */}
       <div className="px-4 pt-3 pb-2 border-b">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">
-            업로드된 문서 ({documents.length})
-          </span>
+          {/* 왼쪽: 문서 수 + 접기/펼치기 토글 */}
+          <button
+            className="flex items-center gap-1 text-sm font-medium text-gray-700 disabled:cursor-default"
+            onClick={() => canCollapse && setDocOpen((v) => !v)}
+            disabled={!canCollapse}
+          >
+            <span>업로드된 문서 ({documents.length})</span>
+            {canCollapse && (
+              docOpen
+                ? <ChevronUp size={14} className="text-gray-400" />
+                : <ChevronDown size={14} className="text-gray-400" />
+            )}
+          </button>
+
+          {/* 오른쪽: 문서 추가 버튼 */}
           <Button
             size="sm"
             variant="outline"
@@ -175,26 +206,28 @@ export default function RagPage() {
             ) : (
               <Upload size={14} className="mr-1" />
             )}
-            {uploading ? "처리 중..." : "문서 추가"}
+            {uploading ? uploadProgress : "문서 추가"}
           </Button>
           <input
             ref={fileInputRef}
             type="file"
             accept=".pdf,.docx,.xlsx,.xls,.txt"
             className="hidden"
+            multiple
             onChange={handleUpload}
           />
         </div>
 
         {uploadError && (
-          <p className="text-xs text-red-500 mb-2">{uploadError}</p>
+          <p className="text-xs text-red-500 mb-2 whitespace-pre-wrap">{uploadError}</p>
         )}
 
+        {/* 문서 목록 — 0개: 안내문구 / 1개: 항상 표시 / 2개 이상: 접기/펼치기 */}
         {documents.length === 0 ? (
           <p className="text-xs text-gray-400 py-1">
-            PDF, DOCX, XLSX 파일을 업로드하세요
+            PDF, DOCX, XLSX 파일을 업로드하세요 (여러 개 동시 선택 가능)
           </p>
-        ) : (
+        ) : (!canCollapse || docOpen) ? (
           <div className="flex flex-wrap gap-1">
             {documents.map((doc) => (
               <div
@@ -214,6 +247,10 @@ export default function RagPage() {
               </div>
             ))}
           </div>
+        ) : (
+          <p className="text-xs text-gray-400 py-0.5">
+            펼쳐서 목록 확인 · 문서 {documents.length}개 등록됨
+          </p>
         )}
       </div>
 
