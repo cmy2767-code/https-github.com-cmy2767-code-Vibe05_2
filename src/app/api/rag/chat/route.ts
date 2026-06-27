@@ -11,32 +11,19 @@ export async function POST(req: NextRequest) {
     return new Response("질문을 입력해주세요.", { status: 400 });
   }
 
-  // 질문의 주요 단어로 관련 청크 검색 (full-text search)
-  const keywords = question.trim().replace(/[^\w\s가-힣]/g, " ").trim();
-
-  const { data: ftsResults } = await supabase
+  // 최신 청크 가져오기
+  const { data: docs, error: dbError } = await supabase
     .from("rag_documents")
     .select("filename, content")
-    .textSearch("content", keywords, { type: "plain", config: "simple" })
-    .limit(5);
+    .order("created_at", { ascending: false })
+    .limit(8);
 
-  // full-text search 결과 없으면 최신 청크로 대체
-  let docs = ftsResults && ftsResults.length > 0 ? ftsResults : null;
-
-  if (!docs) {
-    const { data: recent } = await supabase
-      .from("rag_documents")
-      .select("filename, content")
-      .order("created_at", { ascending: false })
-      .limit(5);
-    docs = recent;
+  if (dbError) {
+    return new Response(`[DB오류] ${dbError.message}`, { status: 500 });
   }
 
   if (!docs || docs.length === 0) {
-    return new Response(
-      "업로드된 문서가 없습니다. 먼저 문서를 업로드해주세요.",
-      { status: 200 }
-    );
+    return new Response("업로드된 문서가 없습니다. 먼저 문서를 업로드해주세요.");
   }
 
   const context = docs
@@ -53,7 +40,12 @@ ${context}
 [질문]
 ${question}`;
 
-  const result = await chatModel.generateContentStream(prompt);
+  let result;
+  try {
+    result = await chatModel.generateContentStream(prompt);
+  } catch (e) {
+    return new Response(`[Gemini오류] ${e instanceof Error ? e.message : e}`, { status: 500 });
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
