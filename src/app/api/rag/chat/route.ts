@@ -45,9 +45,25 @@ export async function POST(req: NextRequest) {
         }
       }
     }
-    const keywords = Array.from(termSet).slice(0, 10);
+    // 긴 단어(구체적인 단어) 우선 정렬
+    const keywords = Array.from(termSet).sort((a, b) => b.length - a.length).slice(0, 10);
 
-    if (keywords.length > 0) {
+    // 가장 구체적인 단어부터 단독 검색 → 결과 충분하면 바로 사용
+    for (const keyword of keywords.slice(0, 3)) {
+      if (keyword.length < 2) continue;
+      const { data } = await supabase
+        .from("rag_documents")
+        .select("filename, content")
+        .ilike("content", `%${keyword}%`)
+        .limit(6);
+      if (data && data.length >= 2) {
+        docs = data;
+        break;
+      }
+    }
+
+    // 단독 검색 결과 부족하면 OR 합산 검색
+    if (!docs || docs.length < 2) {
       const { data: keywordDocs } = await supabase
         .from("rag_documents")
         .select("filename, content")

@@ -122,7 +122,7 @@ export default function RagPage() {
     const q = question.trim();
     if (!q || thinking) return;
 
-    const history = messages.slice(-6); // 최근 6개 메시지 전달
+    const history = messages.slice(-4); // 최근 4개 메시지 전달 (토큰 절약)
     setMessages((prev) => [...prev, { role: "user", content: q }]);
     setQuestion("");
     setThinking(true);
