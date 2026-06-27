@@ -253,7 +253,8 @@ export default function RagPage() {
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="문서 내용에 대해 질문하세요..."
-            className="resize-none text-sm min-h-[44px] max-h-[120px]"
+            className="resize-none min-h-[44px] max-h-[120px]"
+            style={{ fontSize: '16px' }}
             rows={1}
             disabled={thinking}
           />
