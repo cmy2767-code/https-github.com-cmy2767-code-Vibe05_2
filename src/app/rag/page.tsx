@@ -136,7 +136,7 @@ export default function RagPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh max-w-2xl mx-auto bg-white">
+    <div className="flex flex-col w-full bg-white" style={{ height: '100dvh' }}>
       {/* 헤더 */}
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-indigo-600 text-white">
         <Bot size={20} />
@@ -246,7 +246,7 @@ export default function RagPage() {
       </div>
 
       {/* 입력 영역 */}
-      <div className="px-4 py-3 border-t bg-white">
+      <div className="px-4 pt-3 border-t bg-white" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         <div className="flex gap-2 items-end">
           <Textarea
             value={question}
