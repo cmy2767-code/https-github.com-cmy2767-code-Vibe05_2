@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { extractText } from "@/lib/document-parser";
-import { getEmbedding, chunkText } from "@/lib/gemini";
+import { chunkText } from "@/lib/gemini";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -27,15 +27,14 @@ export async function POST(req: NextRequest) {
 
     const chunks = chunkText(text);
 
-    for (let i = 0; i < chunks.length; i++) {
-      const embedding = await getEmbedding(chunks[i]);
-      await supabase.from("rag_documents").insert({
-        filename: file.name,
-        content: chunks[i],
-        embedding: JSON.stringify(embedding),
-        chunk_index: i,
-      });
-    }
+    const rows = chunks.map((content, i) => ({
+      filename: file.name,
+      content,
+      chunk_index: i,
+    }));
+
+    const { error } = await supabase.from("rag_documents").insert(rows);
+    if (error) throw new Error(error.message);
 
     return NextResponse.json({ filename: file.name, chunks: chunks.length });
   } catch (err) {

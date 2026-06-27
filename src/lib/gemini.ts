@@ -6,22 +6,6 @@ export const chatModel = genAI.getGenerativeModel({
   model: "gemini-1.5-flash",
 });
 
-export async function getEmbedding(text: string): Promise<number[]> {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content: { parts: [{ text }] },
-      }),
-    }
-  );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message ?? "임베딩 실패");
-  return data.embedding.values;
-}
-
 export function chunkText(text: string, size = 1000, overlap = 200): string[] {
   const chunks: string[] = [];
   let start = 0;
