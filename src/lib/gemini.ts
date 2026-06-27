@@ -1,10 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-export const chatModel = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash",
-});
+// Gemini SDK는 더 이상 사용하지 않음 (REST API 직접 호출)
 
 export function chunkText(text: string, size = 1000, overlap = 200): string[] {
   const chunks: string[] = [];

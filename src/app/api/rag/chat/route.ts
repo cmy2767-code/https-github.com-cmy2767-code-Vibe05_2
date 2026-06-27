@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { chatModel } from "@/lib/gemini";
 
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
   const { question } = await req.json();
@@ -11,7 +11,6 @@ export async function POST(req: NextRequest) {
     return new Response("질문을 입력해주세요.", { status: 400 });
   }
 
-  // 최신 청크 가져오기
   const { data: docs, error: dbError } = await supabase
     .from("rag_documents")
     .select("filename, content")
@@ -40,24 +39,31 @@ ${context}
 [질문]
 ${question}`;
 
-  let result;
-  try {
-    result = await chatModel.generateContentStream(prompt);
-  } catch (e) {
-    return new Response(`[Gemini오류] ${e instanceof Error ? e.message : e}`, { status: 500 });
+  const geminiRes = await fetch(
+    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      }),
+    }
+  );
+
+  const data = await geminiRes.json();
+
+  if (!geminiRes.ok) {
+    return new Response(
+      `[Gemini오류] ${data.error?.message ?? JSON.stringify(data)}`,
+      { status: 500 }
+    );
   }
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      for await (const chunk of result.stream) {
-        const text = chunk.text();
-        if (text) controller.enqueue(new TextEncoder().encode(text));
-      }
-      controller.close();
-    },
-  });
+  const text =
+    data.candidates?.[0]?.content?.parts?.[0]?.text ??
+    "응답을 생성할 수 없습니다.";
 
-  return new Response(stream, {
+  return new Response(text, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
 }
