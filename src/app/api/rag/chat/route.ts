@@ -11,35 +11,45 @@ export async function POST(req: NextRequest) {
     return new Response("질문을 입력해주세요.", { status: 400 });
   }
 
-  // Extract keywords from question for relevant chunk search
-  const keywords = question
-    .trim()
-    .split(/\s+/)
-    .filter((w: string) => w.length > 1)
-    .slice(0, 5);
+  // 한국어 조사/어미 제거 후 핵심 검색어 추출
+  const particles = ["짜리", "에서", "으로", "에는", "부터", "까지", "처럼", "보다", "이라", "라는", "이란", "이고", "은?", "는?", "은", "는", "이", "가", "을", "를", "의", "에", "로", "과", "와", "도", "만"];
+
+  const rawWords = question.trim().split(/\s+/).filter((w: string) => w.length > 1);
+  const termSet = new Set<string>();
+
+  for (const word of rawWords) {
+    termSet.add(word);
+    for (const p of particles) {
+      if (word.endsWith(p) && word.length - p.length >= 1) {
+        termSet.add(word.slice(0, word.length - p.length));
+        break;
+      }
+    }
+  }
+  const keywords = Array.from(termSet).slice(0, 10);
 
   let docs: Array<{ filename: string; content: string }> | null = null;
 
-  // Search for relevant chunks using keyword matching
+  // 키워드로 관련 청크 검색
   if (keywords.length > 0) {
     const { data: searchResults } = await supabase
       .from("rag_documents")
       .select("filename, content")
       .or(keywords.map((k: string) => `content.ilike.%${k}%`).join(","))
-      .limit(6);
+      .limit(20);
 
     if (searchResults && searchResults.length > 0) {
       docs = searchResults;
     }
   }
 
-  // Fall back to most recent chunks if no keyword matches
+  // 매칭 없으면 최신 청크로 폴백
   if (!docs || docs.length === 0) {
     const { data: recentDocs, error: dbError } = await supabase
       .from("rag_documents")
       .select("filename, content")
       .order("created_at", { ascending: false })
-      .limit(8);
+      .limit(20);
 
     if (dbError) {
       return new Response(`[DB오류] ${dbError.message}`, { status: 500 });
