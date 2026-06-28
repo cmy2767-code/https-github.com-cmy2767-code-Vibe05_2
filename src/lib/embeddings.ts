@@ -25,10 +25,13 @@ export async function getEmbeddings(texts: string[]): Promise<(number[] | null)[
 }
 
 async function fetchWithRetry(batch: string[]): Promise<(number[] | null)[] | null> {
-  const MAX_RETRIES = 3;
+  const MAX_RETRIES = 2;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
+
       const res = await fetch(HF_URL, {
         method: "POST",
         headers: {
@@ -39,7 +42,9 @@ async function fetchWithRetry(batch: string[]): Promise<(number[] | null)[] | nu
           inputs: batch,
           options: { wait_for_model: true },
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (res.ok) {
         const data: number[][] | number[][][] = await res.json();
@@ -49,12 +54,10 @@ async function fetchWithRetry(batch: string[]): Promise<(number[] | null)[] | nu
         });
       }
 
-      // 503: 모델 로딩 중 → 대기 후 재시도
+      // 503: 모델 로딩 중 → 최대 5초만 대기 후 재시도
       if (res.status === 503) {
-        const errData = await res.json().catch(() => ({})) as { estimated_time?: number };
-        const waitMs = Math.min((errData.estimated_time ?? 10) * 1000, 20000);
-        console.log(`[embeddings] 모델 로딩 중, ${waitMs}ms 후 재시도 (${attempt + 1}/${MAX_RETRIES})`);
-        await new Promise((r) => setTimeout(r, waitMs));
+        console.log(`[embeddings] 모델 로딩 중, 5초 후 재시도 (${attempt + 1}/${MAX_RETRIES})`);
+        await new Promise((r) => setTimeout(r, 5000));
         continue;
       }
 
@@ -66,7 +69,7 @@ async function fetchWithRetry(batch: string[]): Promise<(number[] | null)[] | nu
     } catch (e) {
       console.error(`[embeddings] fetch 실패 (${attempt + 1}/${MAX_RETRIES}):`, e);
       if (attempt < MAX_RETRIES - 1) {
-        await new Promise((r) => setTimeout(r, 2000));
+        await new Promise((r) => setTimeout(r, 1000));
       }
     }
   }
