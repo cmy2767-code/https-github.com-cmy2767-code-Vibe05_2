@@ -399,8 +399,8 @@ export default function RagPage() {
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 gap-2">
             <Bot size={40} className="text-indigo-200" />
-            <p className="text-sm">문서를 업로드하고 질문해보세요</p>
-            <p className="text-xs">예: "이 계약서의 주요 조항은 뭐야?"</p>
+            <p className="text-sm">업로드된 문서에 대해 질문해보세요</p>
+            <p className="text-xs">예) 과업심의 간소화 대상은?</p>
           </div>
         )}
 
