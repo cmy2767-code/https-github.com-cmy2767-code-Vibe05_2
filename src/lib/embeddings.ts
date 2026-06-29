@@ -1,5 +1,5 @@
 const JINA_URL = "https://api.jina.ai/v1/embeddings";
-const JINA_MODEL = "jina-embeddings-v2-base-multilingual";
+const JINA_MODEL = "jina-embeddings-v3";
 
 const HF_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2";
 const HF_URL = `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_MODEL}`;
@@ -62,15 +62,27 @@ async function jinaEmbeddings(
       Authorization: `Bearer ${process.env.JINA_API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ input: texts, model: JINA_MODEL, task }),
+    body: JSON.stringify({
+      input: texts,
+      model: JINA_MODEL,
+      task,
+      dimensions: 768, // Supabase 스키마(vector(768))에 맞춤
+    }),
   });
 
+  const body = await res.json();
+
   if (!res.ok) {
-    console.error(`[embeddings] Jina API ${res.status}: ${await res.text()}`);
+    console.error(`[embeddings] Jina API ${res.status}:`, JSON.stringify(body));
     return texts.map(() => null);
   }
 
-  const data = await res.json() as { data: { embedding: number[]; index: number }[] };
+  const data = body as { data: { embedding: number[]; index: number }[] };
+  if (!data.data || !Array.isArray(data.data)) {
+    console.error("[embeddings] Jina 응답 형식 오류:", JSON.stringify(body));
+    return texts.map(() => null);
+  }
+
   const sorted = data.data.sort((a, b) => a.index - b.index);
   return sorted.map((d) => d.embedding);
 }
