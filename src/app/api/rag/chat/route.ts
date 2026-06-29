@@ -135,7 +135,7 @@ ${context}`;
   ];
 
   // 한도 초과 시 소형 모델로 자동 전환
-  const models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama3-8b-8192"];
+  const models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama-3.2-3b-preview"];
   let groqRes: Response | null = null;
 
   for (const model of models) {
