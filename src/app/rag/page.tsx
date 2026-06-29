@@ -260,8 +260,10 @@ export default function RagPage() {
                 <div style={{ background: '#FFFBEB', borderRadius: '10px', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <div style={{ fontSize: '13px', color: '#374151', lineHeight: '1.7' }}>
                     <strong style={{ color: '#92400E' }}>AI 답변 (Groq 무료)</strong><br />
-                    하루 최대 약 <strong>400회</strong> 질문 가능, 분당 30회 제한.<br />
-                    여러 명이 동시에 사용하면 느려지거나 잠시 차단될 수 있어요.
+                    3개 AI 모델이 자동으로 전환되어 사용됩니다.<br />
+                    한 모델의 한도가 차면 다음 모델로 자동 전환되므로
+                    웬만한 사용량은 무료로 커버됩니다.<br />
+                    단, 팀원 전체가 동시에 집중 사용하면 일시적으로 느려질 수 있어요.
                   </div>
                   <div style={{ borderTop: '1px solid #FDE68A', margin: '2px 0' }} />
                   <div style={{ fontSize: '13px', color: '#374151', lineHeight: '1.7' }}>
@@ -271,7 +273,7 @@ export default function RagPage() {
                   </div>
                   <div style={{ borderTop: '1px solid #FDE68A', margin: '2px 0' }} />
                   <div style={{ fontSize: '13px', color: '#92400E', lineHeight: '1.7', fontStyle: 'italic' }}>
-                    ※ 사용량이 많아지면 유료 플랜 전환이 필요할 수 있습니다.
+                    ※ 사용량이 급증하면 유료 플랜 전환이 필요할 수 있습니다.
                   </div>
                 </div>
               </div>
