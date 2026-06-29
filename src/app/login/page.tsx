@@ -147,7 +147,7 @@ function LoginForm() {
         </form>
 
         <p style={{ fontSize: "12px", color: "#9CA3AF", textAlign: "center", marginTop: "20px" }}>
-          비밀번호는 7일간 유지됩니다
+          한 번 로그인하면 7일간 자동 유지됩니다
         </p>
       </div>
     </div>
