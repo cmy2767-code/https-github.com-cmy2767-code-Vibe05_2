@@ -153,11 +153,13 @@ ${context}`;
       break;
     }
 
-    // 429(한도초과)면 다음 모델 시도, 그 외 오류는 즉시 반환
-    if (res.status !== 429) {
-      const data = await res.json();
-      return new Response(`[AI오류] ${data.error?.message ?? JSON.stringify(data)}`, { status: 500 });
+    // 429 또는 "too large" 오류면 다음 모델로 폴백
+    const errData = await res.json();
+    const errMsg: string = errData.error?.message ?? "";
+    if (res.status === 429 || errMsg.toLowerCase().includes("too large") || errMsg.toLowerCase().includes("request too large")) {
+      continue;
     }
+    return new Response(`[AI오류] ${errMsg || JSON.stringify(errData)}`, { status: 500 });
   }
 
   if (!groqRes) {
