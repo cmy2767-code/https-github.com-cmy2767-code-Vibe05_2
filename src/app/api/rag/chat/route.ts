@@ -110,11 +110,22 @@ export async function POST(req: NextRequest) {
     return new Response("업로드된 문서가 없습니다. 먼저 문서를 업로드해주세요.");
   }
 
-  const context = docs
-    .map((d) => `[출처: ${d.filename}]\n${d.content}`)
-    .join("\n\n---\n\n");
+  // 모델별 최대 청크 수 (토큰 한도에 맞게 조정)
+  const modelTiers = [
+    { model: "llama-3.3-70b-versatile",                    maxDocs: 10 },
+    { model: "llama-3.1-8b-instant",                       maxDocs: 4  },
+    { model: "meta-llama/llama-4-scout-17b-16e-instruct",  maxDocs: 6  },
+  ];
 
-  const systemPrompt = `당신은 업로드된 문서를 기반으로 질문에 답하는 AI 어시스턴트입니다.
+  let groqRes: Response | null = null;
+
+  for (const { model, maxDocs } of modelTiers) {
+    const usedDocs = docs!.slice(0, maxDocs);
+    const context = usedDocs
+      .map((d) => `[출처: ${d.filename}]\n${d.content}`)
+      .join("\n\n---\n\n");
+
+    const systemPrompt = `당신은 업로드된 문서를 기반으로 질문에 답하는 AI 어시스턴트입니다.
 
 규칙:
 1. 아래 [문서 내용]을 꼼꼼히 읽고, 질문과 관련된 내용을 찾아 정확하게 한국어로 답변하세요.
@@ -127,18 +138,12 @@ export async function POST(req: NextRequest) {
 [문서 내용]
 ${context}`;
 
-  // 시스템 프롬프트 + 이전 대화 + 현재 질문
-  const messages = [
-    { role: "system", content: systemPrompt },
-    ...history.map((m) => ({ role: m.role, content: m.content })),
-    { role: "user", content: question },
-  ];
+    const messages = [
+      { role: "system", content: systemPrompt },
+      ...history.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user", content: question },
+    ];
 
-  // 한도 초과 시 소형 모델로 자동 전환
-  const models = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "llama-3.2-3b-preview"];
-  let groqRes: Response | null = null;
-
-  for (const model of models) {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -156,7 +161,7 @@ ${context}`;
     // 429 또는 "too large" 오류면 다음 모델로 폴백
     const errData = await res.json();
     const errMsg: string = errData.error?.message ?? "";
-    if (res.status === 429 || errMsg.toLowerCase().includes("too large") || errMsg.toLowerCase().includes("request too large")) {
+    if (res.status === 429 || errMsg.toLowerCase().includes("too large") || errMsg.toLowerCase().includes("decommissioned")) {
       continue;
     }
     return new Response(`[AI오류] ${errMsg || JSON.stringify(errData)}`, { status: 500 });
