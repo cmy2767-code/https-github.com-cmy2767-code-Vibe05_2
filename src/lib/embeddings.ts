@@ -1,81 +1,69 @@
 const HF_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2";
 const HF_URL = `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_MODEL}`;
 
-// 텍스트 배열을 임베딩 벡터 배열로 변환 (HF Inference API)
 export async function getEmbeddings(texts: string[]): Promise<(number[] | null)[]> {
   if (!process.env.HF_API_KEY || texts.length === 0) {
-    console.log("[embeddings] HF_API_KEY 없음, 스킵");
     return texts.map(() => null);
   }
 
+  // 전체 임베딩 생성에 25초 제한 — 초과 시 전부 null 반환
+  try {
+    return await Promise.race([
+      generateEmbeddings(texts),
+      new Promise<(number[] | null)[]>((resolve) =>
+        setTimeout(() => {
+          console.log("[embeddings] 25초 초과, 키워드 검색으로 폴백");
+          resolve(texts.map(() => null));
+        }, 25000)
+      ),
+    ]);
+  } catch {
+    return texts.map(() => null);
+  }
+}
+
+async function generateEmbeddings(texts: string[]): Promise<(number[] | null)[]> {
   const BATCH_SIZE = 8;
   const results: (number[] | null)[] = [];
 
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, i + BATCH_SIZE);
-    const embedding = await fetchWithRetry(batch);
-    if (embedding) {
-      results.push(...embedding);
-    } else {
-      results.push(...batch.map(() => null));
-    }
+    const batchResult = await fetchBatch(batch);
+    results.push(...(batchResult ?? batch.map(() => null)));
   }
 
   return results;
 }
 
-async function fetchWithRetry(batch: string[]): Promise<(number[] | null)[] | null> {
-  const MAX_RETRIES = 2;
+async function fetchBatch(batch: string[]): Promise<(number[] | null)[] | null> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 배치당 10초
 
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
+    const res = await fetch(HF_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.HF_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ inputs: batch, options: { wait_for_model: true } }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
 
-      const res = await fetch(HF_URL, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.HF_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          inputs: batch,
-          options: { wait_for_model: true },
-        }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-
-      if (res.ok) {
-        const data: number[][] | number[][][] = await res.json();
-        return data.map((emb) => {
-          if (Array.isArray(emb[0])) return (emb as number[][])[0];
-          return emb as number[];
-        });
-      }
-
-      // 503: 모델 로딩 중 → 최대 5초만 대기 후 재시도
-      if (res.status === 503) {
-        console.log(`[embeddings] 모델 로딩 중, 5초 후 재시도 (${attempt + 1}/${MAX_RETRIES})`);
-        await new Promise((r) => setTimeout(r, 5000));
-        continue;
-      }
-
-      // 그 외 오류
-      const errText = await res.text().catch(() => "");
-      console.error(`[embeddings] HF API 오류 ${res.status}: ${errText}`);
+    if (!res.ok) {
+      console.error(`[embeddings] HF API ${res.status}`);
       return null;
-
-    } catch (e) {
-      console.error(`[embeddings] fetch 실패 (${attempt + 1}/${MAX_RETRIES}):`, e);
-      if (attempt < MAX_RETRIES - 1) {
-        await new Promise((r) => setTimeout(r, 1000));
-      }
     }
-  }
 
-  console.error("[embeddings] 최대 재시도 횟수 초과");
-  return null;
+    const data: number[][] | number[][][] = await res.json();
+    return data.map((emb) =>
+      Array.isArray(emb[0]) ? (emb as number[][])[0] : (emb as number[])
+    );
+  } catch (e) {
+    console.error("[embeddings] 배치 실패:", e);
+    return null;
+  }
 }
 
 export async function getEmbedding(text: string): Promise<number[] | null> {
