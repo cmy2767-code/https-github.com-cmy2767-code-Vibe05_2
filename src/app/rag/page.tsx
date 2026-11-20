@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -424,9 +423,7 @@ useEffect(() => {
             >
               {msg.role === "assistant" ? (
                 <>
-                  <div className="prose prose-sm max-w-none [&>ol]:list-decimal [&>ol]:pl-5 [&>ul]:list-disc [&>ul]:pl-5 [&>p]:mb-2 [&_strong]:font-bold">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
+                  <span className="whitespace-pre-wrap">{msg.content}</span>
                   {msg.content === "" && <Loader2 size={14} className="animate-spin text-gray-400" />}
                 </>
               ) : (
