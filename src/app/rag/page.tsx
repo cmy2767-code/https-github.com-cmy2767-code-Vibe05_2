@@ -43,7 +43,6 @@ export default function RagPage() {
   const [question, setQuestion] = useState("");
   const [thinking, setThinking] = useState(false);
   const [showNotice, setShowNotice] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -59,10 +58,6 @@ export default function RagPage() {
     if (!sessionStorage.getItem("notice_seen")) {
       setShowNotice(true);
     }
-    const today = new Date().toISOString().slice(0, 10);
-    if (localStorage.getItem("welcome_hidden_until") !== today) {
-      setShowWelcome(true);
-    }
   }, [fetchDocuments]);
 
   function closeNotice() {
@@ -70,17 +65,7 @@ export default function RagPage() {
     sessionStorage.setItem("notice_seen", "1");
   }
 
-  function closeWelcome() {
-    setShowWelcome(false);
-  }
-
-  function closeWelcomeToday() {
-    setShowWelcome(false);
-    const today = new Date().toISOString().slice(0, 10);
-    localStorage.setItem("welcome_hidden_until", today);
-  }
-
-  useEffect(() => {
+useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -193,59 +178,6 @@ export default function RagPage() {
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', flexDirection: 'column', background: 'white' }}>
-
-      {/* 환영 팝업 */}
-      {showWelcome && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 100,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '24px',
-          }}
-        >
-          <div
-            style={{
-              background: 'white', borderRadius: '20px',
-              width: '100%', maxWidth: '320px',
-              boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
-              overflow: 'hidden',
-            }}
-          >
-            <div style={{ background: '#4F46E5', padding: '28px 24px 24px', textAlign: 'center' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>👋</div>
-              <p style={{ color: 'white', fontSize: '18px', fontWeight: 700, margin: 0, lineHeight: 1.5 }}>
-                환영합니다.<br />사랑합니다~
-              </p>
-            </div>
-            <div style={{ display: 'flex', borderTop: '1px solid #E5E7EB' }}>
-              <button
-                onClick={closeWelcomeToday}
-                style={{
-                  flex: 1, padding: '14px',
-                  fontSize: '13px', color: '#6B7280',
-                  background: 'none', border: 'none',
-                  borderRight: '1px solid #E5E7EB',
-                  cursor: 'pointer', fontWeight: 500,
-                }}
-              >
-                오늘하루열지않기
-              </button>
-              <button
-                onClick={closeWelcome}
-                style={{
-                  flex: 1, padding: '14px',
-                  fontSize: '13px', color: '#4F46E5',
-                  background: 'none', border: 'none',
-                  cursor: 'pointer', fontWeight: 700,
-                }}
-              >
-                닫기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 안내 팝업 */}
       {showNotice && (
