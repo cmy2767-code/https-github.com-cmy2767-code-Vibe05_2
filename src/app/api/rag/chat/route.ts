@@ -112,9 +112,9 @@ export async function POST(req: NextRequest) {
 
   // 모델별 최대 청크 수 (토큰 한도에 맞게 조정)
   const modelTiers = [
-    { model: "meta-llama/llama-4-maverick-17b-128e-instruct", maxDocs: 10 },
-    { model: "meta-llama/llama-4-scout-17b-16e-instruct",     maxDocs: 6  },
-    { model: "llama-3.1-8b-instant",                          maxDocs: 4  },
+    { model: "openai/gpt-oss-120b", maxDocs: 10 },
+    { model: "openai/gpt-oss-20b",  maxDocs: 6  },
+    { model: "qwen/qwen3.8-27b",    maxDocs: 4  },
   ];
 
   let groqRes: Response | null = null;
